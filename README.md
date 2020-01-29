@@ -6,7 +6,7 @@
 
 >__/aws- _region_
 
->____/dev                (git clone https://github.com/venonco/aws-auto-scaling-swarm)
+>____/dev                (git clone https://github.com/VernonCo/AWS_auto-scaling_swarm.git)
 
 >____/prod
 
