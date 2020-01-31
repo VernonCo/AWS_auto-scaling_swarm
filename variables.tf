@@ -212,13 +212,13 @@ variable "worker_volume_size" {
 variable "master_sleep_seconds" {
   description = "sleep time to allow nodes to join before running any stack deploys etc."
   type        = number
-  default     = 120
+  default     = 60
 }
 
 variable "sleep_seconds" {
   description = "make sure the first master is set up and has saved the join token to secrets"
   type        = number
-  default     = 30
+  default     = 15
 }
 
 # -----------------------------------------------------------------------------

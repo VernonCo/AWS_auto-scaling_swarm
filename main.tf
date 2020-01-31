@@ -163,6 +163,11 @@ resource "aws_security_group" "swarm" {
 }
 
 # create on-demand instance with elastic-IP attached to initialize the swarm
+# modifying this after apply will recreate initial master and replace launch configurations.
+# the new initial_master will be orphaned from the original extra nodes. You will need to ssh to
+# the intial  master, then ssh to a  master node, get the token, and then join the initial master
+# to the swarm.  Finally update the AWS secret token with the correct information so that any auto-
+# scaling nodes will connect correctly.
 resource "aws_instance" "first_swarm_master" {
   ami                         = data.aws_ami.target_ami.id
   instance_type               = var.first_master_instance_size
@@ -216,25 +221,26 @@ docker swarm init --advertise-addr $(curl -s http://169.254.169.254/latest/meta-
 MASTER_TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_MASTER_TOKEN --query "SecretString" --output text)
 echo "TOKEN=$MASTER_TOKEN"
 if [ -z "$MASTER_TOKEN" ]
-then  #is empty
+then  # does not exist so create secret
   aws secretsmanager create-secret --name $SWARM_MASTER_TOKEN --description "swarm token for masters" --secret-string $(docker swarm join-token manager -q) 2>/dev/null
 else
-  # update token
+  # exists so update token
   aws secretsmanager update-secret --secret-id $SWARM_MASTER_TOKEN --secret-string $(docker swarm join-token manager -q) 2>/dev/null
 fi
 TOKEN=$(aws} secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
 echo "TOKEN=$TOKEN"
 if [ -z "$TOKEN" ]
-then  #is empty
+then  # does not exist so create secret
   aws secretsmanager create-secret --name $SWARM_WORKER_TOKEN --description "swarm token for workers" --secret-string $(docker swarm join-token worker -q) 2>/dev/null
 else
-  # update token
+  # exists so update token
   aws secretsmanager update-secret --secret-id $SWARM_WORKER_TOKEN --secret-string $(docker swarm join-token worker -q) 2>/dev/null
 fi
 mkdir /tmp/data
 
 # sleep time to allow nodes to join before running any stack deploys etc.
-sleep ${var.master_sleep_seconds}
+nodes=$((${var.master_nodes_desired} + ${var.worker_nodes_desired}))
+while [ $(docker node ls -q | wc -l) -lt "$nodes" ]; do echo 'Waiting for nodes' >> /start.log;sleep 5;done
 
 chmod 400 /${var.aws_key_name}.pem
 chmod +x start.sh
