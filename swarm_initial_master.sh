@@ -25,8 +25,6 @@ crontab /crontab.txt
 service crond restart
 service rsyslog restart
 
-#docker login to pull private repositories
-docker login --username=vernondocker --password=Xht7pyLTnmdh
 # create attachable network for the swarm
 docker network create --driver=overlay --attachable net-$ENVIRONMENT
 

@@ -59,6 +59,14 @@ variable "peer_route_table_id" {
   description = "peer connection's route table to add route to.  May not be used if grabbing default vpc info"
   type        = string
 }
+variable "docker_username" {
+  description = "docker username used to pull private repositories"
+  type        = string
+}
+variable "docker_password" {
+  description = "docker password used to pull private repositories"
+  type        = string
+}
 
 # -----------------------------------------------------------------------------
 # variables with defaults.  Override in terraform.tfvars if desired.

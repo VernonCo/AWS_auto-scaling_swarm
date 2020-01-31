@@ -59,6 +59,10 @@ docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2
 # the deploy>preferences -spread:  node.labels.zone
 chmod 400 /${var.aws_key_name}.pem
 
+#docker login to pull private repositories if username is passed.
+if test "${var.docker_username}" && test "${var.docker_password}";then
+  docker login --username=${var.docker_username} --password=${var.docker_password}
+fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF
@@ -121,6 +125,10 @@ docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2
 # the deploy>preferences -spread:  node.labels.zone
 chmod 400 /${var.aws_key_name}.pem
 
+#docker login to pull private repositories if username is passed.
+if test "${var.docker_username}" && test "${var.docker_password}";then
+  docker login --username=${var.docker_username} --password=${var.docker_password}
+fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF

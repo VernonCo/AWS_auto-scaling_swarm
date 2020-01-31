@@ -243,6 +243,11 @@ nodes=$((${var.master_nodes_desired} + ${var.worker_nodes_desired}))
 while [ $(docker node ls -q | wc -l) -lt "$nodes" ]; do echo 'Waiting for nodes' >> /start.log;sleep 5;done
 
 chmod 400 /${var.aws_key_name}.pem
+
+#docker login to pull private repositories if username is passed.
+if test "${var.docker_username}" && test "${var.docker_password}";then
+  docker login --username=${var.docker_username} --password=${var.docker_password}
+fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF
