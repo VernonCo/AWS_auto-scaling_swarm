@@ -120,10 +120,6 @@ variable "target_groups" {
 }
 # swarm variables
 # -----------------------------------------------------------------------
-variable "node_spot_price" {
-  type    = string
-  default = "0.15"
-}
 
 variable "first_master_instance_size" {
   description = "type of instance on initial master"
@@ -136,6 +132,11 @@ variable "first_master_volume_size" {
   description = "volume size on initial master"
   type        = string
   default     = "75"
+}
+
+variable "master_node_spot_price" {
+  type    = string
+  default = "0.007"
 }
 
 # additional masters besides intial master
@@ -160,14 +161,19 @@ variable "master_nodes_desired" {
 variable "master_instance_size" {
   description = "type of instance and size. ie t2.micro"
   type        = string
-  default     = "m5dn.large"
+  default     = "t2.small"
 }
 
 # using instances that come with device attached.  Use the default attached size
 variable "master_volume_size" {
   description = "size of the data volume. (ie. 30)"
   type        = string
-  default     = "300"
+  default     = "30"
+}
+
+variable "worker_node_spot_price" {
+  type    = string
+  default = "0.358"
 }
 
 #nodes as worker only

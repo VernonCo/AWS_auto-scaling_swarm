@@ -3,9 +3,9 @@
 #launch configuration for swarm nodes as master
 resource "aws_launch_configuration" "swarm_master_node" {
   image_id      = data.aws_ami.target_ami.id
-  instance_type = var.worker_instance_size
+  instance_type = var.master_instance_size
   key_name      = var.aws_key_name
-  spot_price    = var.node_spot_price
+  spot_price    = var.master_node_spot_price
   # Must creat the master instance before the workers to get the token
   #  to connect to the master and swarm_worker policies
   depends_on = [
@@ -69,7 +69,7 @@ resource "aws_launch_configuration" "swarm_worker_node" {
   image_id      = data.aws_ami.target_ami.id
   instance_type = var.worker_instance_size
   key_name      = var.aws_key_name
-  spot_price    = var.node_spot_price
+  spot_price    = var.worker_node_spot_price
   # Must creat the master instance before the workers to get the token
   #  to connect to the master and swarm_worker policies
   depends_on = [
