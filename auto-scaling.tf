@@ -6,8 +6,8 @@ resource "aws_launch_configuration" "swarm_master_node" {
   instance_type = var.master_instance_size
   key_name      = var.aws_key_name
   spot_price    = var.master_node_spot_price
-  # Must creat the master instance before the workers to get the token
-  #  to connect to the master and swarm_worker policies
+  # Must creat the master instance before the swarm masters to get the token
+  #  to connect to the initial master and swarm master policies
   depends_on = [
     aws_instance.first_swarm_master, aws_iam_role.swarm,
     aws_iam_role_policy_attachment.swarm_sm,
@@ -18,7 +18,7 @@ resource "aws_launch_configuration" "swarm_master_node" {
 
   root_block_device {
     volume_type = "standard"
-    volume_size = var.worker_volume_size
+    volume_size = var.master_volume_size
   }
   associate_public_ip_address = false
   security_groups             = [aws_security_group.swarm.id]
