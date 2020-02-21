@@ -67,6 +67,10 @@ variable "docker_password" {
   description = "docker password used to pull private repositories"
   type        = string
 }
+variable "portainer_password" {
+  description = "portainer password for admin access"
+  type        = string
+}
 
 # -----------------------------------------------------------------------------
 # variables with defaults.  Override in terraform.tfvars if desired.
@@ -114,17 +118,21 @@ variable "public_subnets" {
 
 variable "target_groups" {
   description = "map of target groups"
-  type        = list(object({
-    name=string,
-    domains=list(string),
-    port=number,
-    protocol=string,
-    path=string,
-    matcher=string,
-    priority=number}))
+  type = list(object({
+    name     = string,
+    domains  = list(string),
+    port     = number,
+    protocol = string,
+    path     = string,
+    matcher  = string,
+  priority = number }))
   # sets up swarmpit.yourdomain in alb and swarmpit target group.  CHANGE yourdomain!!
-  default     = [{name="swarmpit", domains=["swarmpit.yourdomain"], port=8080, protocol="HTTP",
-                  path="/", matcher="200-299", priority=10}]
+  default = [
+    { name = "swarmpit", domains = ["swarmpit.yourdomain"],
+      port = 8080, protocol = "HTTP", path = "/", matcher = "200-299", priority = 10 },
+    { name = "portainer", domains = ["portainer.yourdomain"],
+      port = 9000, protocol = "HTTP", path = "/", matcher = "200-299", priority = 20 }
+  ]
 }
 # swarm variables
 # -----------------------------------------------------------------------

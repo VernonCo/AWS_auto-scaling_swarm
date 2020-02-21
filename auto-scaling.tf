@@ -37,6 +37,9 @@ export S3_PATH=${var.S3_scripts_path}
 echo "export S3_PATH=${var.S3_scripts_path}" >> ~/.bashrc
 nohup aws s3 cp s3://${var.S3_scripts_path}/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
 nohup aws s3 cp s3://${var.S3_scripts_path}/swarm_master_nodes.sh /start.sh &
+# may be added by default in amazon image
+export AWS_DEFAULT_REGION=${var.aws_region}
+echo "export AWS_DEFAULT_REGION=${var.aws_region}" >> ~/.bashrc
 yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y
@@ -106,6 +109,9 @@ export S3_PATH=${var.S3_scripts_path}
 echo "export S3_PATH=${var.S3_scripts_path}" >> ~/.bashrc
 nohup aws s3 cp s3://${var.S3_scripts_path}/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
 nohup aws s3 cp s3://${var.S3_scripts_path}/swarm_nodes.sh /start.sh &
+# may be added by default in amazon image
+export AWS_DEFAULT_REGION=${var.aws_region}
+echo "export AWS_DEFAULT_REGION=${var.aws_region}" >> ~/.bashrc
 yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y

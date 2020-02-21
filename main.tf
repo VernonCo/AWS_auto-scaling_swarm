@@ -38,7 +38,7 @@ resource "aws_iam_role_policy_attachment" "swarm_sm" {
 }
 
 resource "aws_iam_policy" "bucket_policy" {
-  name        = format("%s-%s-policy", var.environment, var.namespace)
+  name        = format("%s-%s-bucket-policy", var.environment, var.namespace)
   description = "Access to S3 scripts bucket policy"
 
   policy = <<EOF
@@ -64,6 +64,44 @@ resource "aws_iam_role_policy_attachment" "bucket_access" {
   role       = aws_iam_role.swarm.id
   policy_arn = aws_iam_policy.bucket_policy.arn
 }
+
+# following two are not needed if not using cloudstor or similar permanent volumes plugin
+resource "aws_iam_policy" "volume_policy" {
+  name        = format("%s-%s-volume-policy", var.environment, var.namespace)
+  description = "Access to volume managment policy"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+          "ec2:CreateTags",
+          "ec2:AttachVolume",
+          "ec2:DetachVolume",
+          "ec2:CreateVolume",
+          "ec2:DeleteVolume",
+          "ec2:DescribeVolumes",
+          "ec2:DescribeVolumeStatus",
+          "ec2:CreateSnapshot",
+          "ec2:DeleteSnapshot",
+          "ec2:DescribeSnapshots"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
+# S3 scripts bucket access
+resource "aws_iam_role_policy_attachment" "volume_access" {
+  count      = var.is_bucket_policy
+  role       = aws_iam_role.swarm.id
+  policy_arn = aws_iam_policy.volume_policy.arn
+}
+
 
 resource "aws_iam_instance_profile" "swarm" {
   name = format("%s-%s-profile", var.environment, var.namespace)
@@ -206,11 +244,13 @@ export S3_PATH=${var.S3_scripts_path}
 echo "export S3_PATH=${var.S3_scripts_path}" >> ~/.bashrc
 nohup aws s3 cp s3://${var.S3_scripts_path}/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
 nohup aws s3 cp s3://${var.S3_scripts_path}/swarm_initial_master.sh /start.sh &
+# may be added by default in amazon image
+export AWS_DEFAULT_REGION=${var.aws_region}
+echo "export AWS_DEFAULT_REGION=${var.aws_region}" >> ~/.bashrc
 yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y
 service docker start
-export AWS_DEFAULT_REGION=${var.aws_region}  #may not need this
 export SWARM_MASTER_TOKEN=${format("%s-swarm-master-token2", var.environment)}
 export SWARM_WORKER_TOKEN=${format("%s-swarm-worker-token2", var.environment)}
 # export to profile for use in updating tokens with update_tokens.sh
@@ -236,7 +276,7 @@ else
   # exists so update token
   aws secretsmanager update-secret --secret-id $SWARM_WORKER_TOKEN --secret-string $(docker swarm join-token worker -q) 2>/dev/null
 fi
-mkdir /tmp/data
+echo "${var.portainer_password}" > /portainer_password
 
 # sleep time to allow nodes to join before running any stack deploys etc.
 nodes=$((${var.master_nodes_desired} + ${var.worker_nodes_desired}))

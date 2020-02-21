@@ -4,4 +4,4 @@
 export NODE_ID=$(docker info -f '{{.Swarm.NodeID}}')
 docker node update --label-add swarmpit.db-data=true $NODE_ID
 
-docker stack deploy -c ./stacks/example.yml swarmpit
+docker stack deploy -c ./stacks/swarmpit.yml swarmpit

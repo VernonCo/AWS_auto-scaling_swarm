@@ -1,4 +1,17 @@
 # Auto-scaling Swarm on AWS
+## Summary
+This project installs
+ - a master EC2 on-demand instance
+ - auto-scaling groups of spot-instances (one for masters and one for workers) to run a docker swarm on
+ - a loadbalancer and target groups specified
+ - a peering connection if specified.
+
+There is ability to add persistent volumes to the swarm depending on instances chosen.  Documentation links
+are included to other alternatives if needed on instances using NVMe storage.
+
+If you use the example_scripts as mentioned below, it will also
+install swarmpit and portainer on the swarm for monitoring.  Those scripts can be used
+as a model to add more stacks automatically to your swarm on initiation.
 
 ## This is Used With the Following Folder Structure.
 
@@ -43,15 +56,15 @@ This swarm master can download scripts & stacks and a crontab.txt to run cronjob
 Structure for the S3 bucket:
 >/_namespace_/_environment_       [_environment_-crontab.txt, update_tokens.sh, add_zone_label.sh(for swarmpit)]
 
->___/dev  [bash scripts (ie. example-script.sh)]
+>___/dev  [bash scripts (see ./example_scripts)]
 
->_____/stacks  [yml files  (ie. example.yml)]
+>_____/stacks  [yml files  (see ./example_scripts/stacks/)]
 
 >___/prod
 
 >___.....
 
-Example scripts install swarmpit.
+Example scripts install swarmpit and portainer, two Swarm UI management apps.
 
 If S3 scripts are not used, you can still ssh into the initial master to copy/create scripts and stacks to run.
 #### AWS Secret Manager for Swarm Token
@@ -70,21 +83,21 @@ target_groups and ssl_arns variables allow you to set multiple targets and domai
 ### Peering Connection to Default VPC
 Can enable a peering connection to the default VPC to be able to connect to resources on the default VPC.  Does not take much to enable a cross region peering connection if needed (see commented out section of peering_vpc.tf).
 
-## State Storage
+## State Storage (recommended)
 Recomend setting up a tf state on aws S3 and dynamodb (Otherwise, remove tf-state.tf to store locally).  External storage on AWS allows multiple developers to use the same code and lock others out while running apply to prevent mangled configurations.
 #### Create S3 Bucket and Dynamodb Table for TF State
-Add a region/dev/state/terraform.tfvars to override variables.  Then in region/dev/state run:
+Add a region/dev/state/terraform.tfvars to override variables in region/dev/state/main.tf.  Then in region/dev/state run:
 
   `terraform init`
-  
+
   `terraform apply`
-  
+
 It will create an S3 bucket and a global dynamodb lock table with replications in 2 regions of your choice.  You can easily change it to have only one replication or as many as you like.
 #### Create tf-state.tf in Environment Folder for Environment State Storage
 Dev has file already to be edited. Otherwise, you can copy the example in dev/state/backend-example to edit.
 
   `cp backend-example/tf-state.tf path_to_environment_folder/`
-  
+
 cd to region/dev and rerun `terraform init` to use the new bucket and lock table. You should see
 
   'Successfully configured the backend "s3"! Terraform will automatically use this backend unless the backend configuration changes.'
