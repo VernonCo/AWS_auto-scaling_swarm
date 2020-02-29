@@ -1,13 +1,11 @@
 #/bin/sh
 # import any necessary scripts in the background
+nohup aws s3 cp s3://$S3_PATH/crontab.txt /crontab.txt &
+nohup aws s3 cp s3://$S3_PATH/update_tokens.sh /update_tokens.sh &
+nohup aws s3 cp s3://$S3_PATH/add_zone_label.sh /add_zone_label.sh &
+nohup aws s3 cp s3://$S3_PATH/remove_dead_nodes.sh /remove_dead_nodes.sh &
 mkdir ./scripts
-aws s3 cp s3://$S3_PATH/$ENVIRONMENT-crontab.txt /crontab.txt
-aws s3 cp s3://$S3_PATH/$ENVIRONMENT/ ./scripts/ --include "*" --recursive
-# aws s3 cp s3://$S3_PATH/$ENVIRONMENT/ap.env ./scripts/stacks/
-# aws s3 cp s3://$S3_PATH/$ENVIRONMENT/ap.yml ./scripts/stacks/
-# aws s3 cp s3://$S3_PATH/$ENVIRONMENT/ap.sh ./scripts/
-aws s3 cp s3://$S3_PATH/update_tokens.sh /update_tokens.sh
-aws s3 cp s3://$S3_PATH/add_zone_label.sh /add_zone_label.sh
+aws s3 cp s3://$S3_PATH/scripts ./scripts/ --include "*" --recursive
 
 # echo "set timezone to America/Chicago"
 unlink /etc/localtime
@@ -26,7 +24,9 @@ docker network create --driver=overlay --attachable app-net
 # docker plugin install --alias cloudstor:aws --grant-all-permissions docker4x/cloudstor:18.03.0-ce-aws1 CLOUD_PLATFORM=AWS AWS_REGION=$AWS_DEFAULT_REGION EFS_SUPPORTED=0 DEBUG=1
 
 # echo "set crontab and restart cron/rsyslog to catch new TZ above"
-crontab /crontab.txt
+if [ -f crontab.txt ];then
+    crontab /crontab.txt
+fi
 # reset cron to use updated timezone
 service crond restart
 service rsyslog restart
@@ -38,3 +38,6 @@ for file in *; do
     chmod +x $file
     . $file
 done
+
+# runs continously in the background to remove lost spot instances
+nohup sh /remove_dead_nodes.sh &

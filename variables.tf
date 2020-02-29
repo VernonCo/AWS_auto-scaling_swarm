@@ -1,48 +1,61 @@
 
+# *** Requires AWS static or environment credentials.  If they are not provided, you
+# will need to uncomment them in the provider on the main.tf and the 2 first variables below
+
 # -----------------------------------------------------------------------------
 # variables to inject via terraform.tfvars or environment
 # -----------------------------------------------------------------------------
 
+# AWS provider info
+# variable access_key {}
+# variable secret_key {}
 variable "aws_region" {}
+
 variable "aws_key_name" {
-  description = "key to access instances  (ie. swarm.pem)"
+  description = "key to access instances  (ie. 'swarm' for swarm.pem)"
   type        = string
+}
+# *** place the pem in the same folder as this file ***********************
+#  in order to be copied to the S3 private scripts bucket
+variable has_pem {
+  description = "1 if passing a pem for containers to ssh back and forth"
+  type        = string
+  default     = null
 }
 variable "allowed_ip" {
   description = "Ip to allow ssh access"
-  type        = string
-}
-variable "domain" {
-  description = "default domain to pull acm and set default listener"
-  type        = string
-}
-variable "owner" {
-  description = "project owner ie. company name"
   type        = string
 }
 variable "ssl_arn" {
   description = "default certificate manager ssl certs"
   type        = string
 }
+variable bucket_name {
+  description = "bucket name for scripts"
+  type        = string
+}
+variable "domain" {
+  description = "default domain to pull acm and set default listener"
+  type        = string
+  default     = "example.com"
+}
+variable "owner" {
+  description = "project owner ie. company name"
+  type        = string
+  default     = "my_project"
+}
 variable "ssl_arns" {
   description = "list of additional certificate manager ssl certs (ie. [\"arn:..\", \"arn:...\"])"
   type        = set(string)
+  default     = []
 }
-variable "subscriptions" {
-  description = "phone number list for sms subscription to autscaling notices"
-}
-variable "sms_id" {
-  description = "String to identify sms notice. (ie. Vernon AWS)"
+variable "portainer_password" {
+  description = "portainer password for admin access"
   type        = string
+  default     = "a_password_to_use"
 }
-variable "S3_scripts_path" {
-  description = "S3 bucket path to startup scripts. (ie. bucket/path)"
-  type        = string
-}
-variable "is_bucket_policy" {
-  description = "0 if not passing; 1 if passing a bucket_policy_arn"
-  type        = number
-}
+
+# add a peering connection  ie to the default vpc
 variable "peering_enabled" {
   description = "true || false  to create peer connection to another vpc in the same region.  default=default vpc"
   type        = bool
@@ -59,23 +72,61 @@ variable "peer_route_table_id" {
   description = "peer connection's route table to add route to.  May not be used if grabbing default vpc info"
   type        = string
 }
+
+# Add AWS Secrets for docker login to pull private repositories
 variable "docker_username" {
   description = "docker username used to pull private repositories"
   type        = string
+  default     = null
 }
 variable "docker_password" {
   description = "docker password used to pull private repositories"
   type        = string
+  default     = null
 }
-variable "portainer_password" {
-  description = "portainer password for admin access"
+
+# can be used in regions that have sns
+variable "subscriptions" {
+  description = "phone number list for sms subscription to autscaling notices"
+  type        = set(string)
+}
+variable "sms_id" {
+  description = "String to identify sms notice. (ie. Vernon AWS)"
   type        = string
 }
-
 # -----------------------------------------------------------------------------
-# variables with defaults.  Override in terraform.tfvars if desired.
+# variables with defaults.  Override in terraform.tfvars or here if desired.
 # -----------------------------------------------------------------------------
 
+# sets up swarmpit.yourdomain in alb and swarmpit target group.
+# *************  CHANGE yourdomain!!  *******************************
+variable "target_groups" {
+  description = "map of target groups"
+  type = list(object({
+    name     = string,
+    domains  = list(string),
+    port     = number,
+    protocol = string,
+    path     = string,
+    matcher  = string,
+  priority = number }))
+  default = [
+    { name = "swarmpit", domains = ["dev-swarmpit.yourdomain"],
+    port = 8080, protocol = "HTTP", path = "/", matcher = "200-299", priority = 10 },
+    { name = "portainer", domains = ["dev-portainer.yourdomain"],
+    port = 9000, protocol = "HTTP", path = "/", matcher = "200-299", priority = 20 }
+  ]
+}
+
+variable "tags" {
+  type = map
+
+  default = {
+    "Owner"   = "YOUR COMPANY"
+    "Project" = "terraform-aws-swarm"
+    "Client"  = "internal"
+  }
+}
 variable "environment" {
   description = "used through out for tagging and creating unique resources"
   type        = string
@@ -88,16 +139,7 @@ variable "namespace" {
   default     = "swarm"
 }
 
-variable "tags" {
-  type = map
-
-  default = {
-    "Owner"   = "Vernon"
-    "Project" = "terraform-aws-swarm"
-    "Client"  = "internal"
-  }
-}
-
+#network settings check to make sure there are no colisions with existing
 variable "vpc_cidr" {
   description = "vpc cidr ie. 172.28.0.0/16"
   type        = string
@@ -116,23 +158,25 @@ variable "public_subnets" {
   default     = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 }
 
-variable "target_groups" {
-  description = "map of target groups"
-  type = list(object({
-    name     = string,
-    domains  = list(string),
-    port     = number,
-    protocol = string,
-    path     = string,
-    matcher  = string,
-  priority = number }))
-  # sets up swarmpit.yourdomain in alb and swarmpit target group.  CHANGE yourdomain!!
+variable script_uploads {
+  description = "list of script files to upload. They run on instances at start up"
+  type        = list(string)
   default = [
-    { name = "swarmpit", domains = ["swarmpit.yourdomain"],
-      port = 8080, protocol = "HTTP", path = "/", matcher = "200-299", priority = 10 },
-    { name = "portainer", domains = ["portainer.yourdomain"],
-      port = 9000, protocol = "HTTP", path = "/", matcher = "200-299", priority = 20 }
+    "swarm_initial_master.sh", "swarm_masters.sh", "swarm_workers.sh",
+    "update_tokens.sh", "add_zone_label.sh", "remove_dead_nodes.sh"
   ]
+}
+
+variable swarm_script_uploads {
+  description = "list of swarm deploy script files to upload. They run on instances at start up. see example_scripts"
+  type        = list(string)
+  default     = ["portainer.sh", "swarmpit.sh"]
+}
+
+variable swarm_stack_uploads {
+  description = "list of docker-compose files for stacks. see example_scripts/stacks"
+  type        = list(string)
+  default     = ["portainer.yml", "swarmpit.yml"]
 }
 # swarm variables
 # -----------------------------------------------------------------------
@@ -140,7 +184,7 @@ variable "target_groups" {
 variable "first_master_instance_size" {
   description = "type of instance on initial master"
   type        = string
-  default     = "m5dn.large"
+  default     = "t3.large"
 }
 
 # using instances that come with device attached.  Use the default attached size
@@ -224,13 +268,6 @@ variable "worker_volume_size" {
   default     = "300"
 }
 
-# time to wait for processes to happen on auto-scaling
-variable "master_sleep_seconds" {
-  description = "sleep time to allow nodes to join before running any stack deploys etc."
-  type        = number
-  default     = 60
-}
-
 variable "sleep_seconds" {
   description = "make sure the first master is set up and has saved the join token to secrets"
   type        = number
@@ -244,6 +281,7 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# retrieve latest vesion of aws ami
 data "aws_ami" "target_ami" {
   most_recent = true
   owners      = ["137112412989"] # Amazon

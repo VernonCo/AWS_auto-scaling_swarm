@@ -9,6 +9,9 @@ unlink /etc/localtime
 ln -s /usr/share/zoneinfo/America/Chicago /etc/localtime
 
 # echo "run scripts"
+# get the zone that the instances are running in and add to docker node's label
+# this allows you to deploy containers equally in multiple zones using
+# the deploy>preferences -spread:  node.labels.zone
 sudo bash ./add_zone_label.sh
 
 # cloudstor plugin allows persistent volumes on AWS and Azure

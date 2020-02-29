@@ -1,10 +1,13 @@
 provider "aws" {
+  alias  = "region-1"
   region = var.region-1
+  version = "~> 2.50"
 }
 
 provider "aws" {
   alias  = "region-2"
   region = var.region-2
+  version = "~> 2.50"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
@@ -32,7 +35,7 @@ resource "aws_s3_bucket" "terraform_state" {
 
 resource "aws_dynamodb_table" "region-1" {
   count = var.create_lock_table? 1 : 0
-  provider = aws
+  provider = aws.region-1
 
   name         = var.dynamodb_lock_table_name
   billing_mode = "PAY_PER_REQUEST"
@@ -63,7 +66,7 @@ resource "aws_dynamodb_table" "region-2" {
 resource "aws_dynamodb_global_table" "vernon-terraform-locks" {
   count = var.create_lock_table? 1 : 0
   depends_on = [aws_dynamodb_table.region-1, aws_dynamodb_table.region-2]
-  provider   = aws
+  provider   = aws.region-1
 
   name = var.dynamodb_lock_table_name
 

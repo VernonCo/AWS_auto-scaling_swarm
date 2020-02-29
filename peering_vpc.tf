@@ -23,6 +23,20 @@ data "aws_route_table" "this" {
   }
 }
 
+resource "aws_route" "main_route" {
+  count = var.peering_enabled ? 1 : 0
+  route_table_id            = data.aws_route_table.this[count.index].id
+  destination_cidr_block    = data.aws_vpc.peer_vpc.cidr_block
+  vpc_peering_connection_id = aws_vpc_peering_connection.vpc_peering[count.index].id
+}
+
+# resource "aws_route" "peer_main_route" {
+#   count = var.peering_enabled ? 1 : 0
+#   route_table_id            = data.aws_route_table.peer[count.index].id
+#   destination_cidr_block    = var.vpc_cidr
+#   vpc_peering_connection_id = aws_vpc_peering_connection.vpc_peering[count.index].id
+# }
+
 # create resources
 resource "aws_vpc_peering_connection" "vpc_peering" {
   count = var.peering_enabled ? 1 : 0
@@ -51,20 +65,6 @@ resource "aws_vpc_peering_connection" "vpc_peering" {
 #   vpc_peering_connection_id = aws_vpc_peering_connection.vpc_peering[count.index].id
 #   auto_accept               = true
 # }
-
-resource "aws_route" "main_route" {
-  count = var.peering_enabled ? 1 : 0
-  route_table_id            = data.aws_route_table.this[count.index].id
-  destination_cidr_block    = data.aws_vpc.peer_vpc.cidr_block
-  vpc_peering_connection_id = aws_vpc_peering_connection.vpc_peering[count.index].id
-}
-
-resource "aws_route" "peer_main_route" {
-  count = var.peering_enabled ? 1 : 0
-  route_table_id            = data.aws_route_table.peer[count.index].id
-  destination_cidr_block    = var.vpc_cidr
-  vpc_peering_connection_id = aws_vpc_peering_connection.vpc_peering[count.index].id
-}
 
 # --------------------------------------------------------------------------------
 # example to use for cross region peering

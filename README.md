@@ -19,13 +19,14 @@ as a model to add more stacks automatically to your swarm on initiation.
 
 >__/aws- _region_
 
->____/dev                (git clone https://github.com/VernonCo/AWS_auto-scaling_swarm.git)
+>____/dev                (git clone https://github.com/VernonCo/AWS_auto-scaling_swarm.git dev)
 
 >____/prod
 
 >__/modules
 
 >____/terraform-aws-vpc  (git clone https://github.com/terraform-aws-modules/terraform-aws-vpc.git)
+>____/terrafrom-aws-vpc-peering (git clone https://github.com/grem11n/terraform-aws-vpc-peering.git)
 
 ## Uses Terraform 0.12
 Variables are not quoted, and code is not backwards compatible with 0.11

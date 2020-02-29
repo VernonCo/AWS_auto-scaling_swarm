@@ -23,19 +23,20 @@ services:
     # https://gist.github.com/deviantony/62c009b41bde5e078b1a7de9f11f5e55
     # create password: docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your_password' | cut -d ":" -f 2
     #  Add a $ infront of any $ in the output from above
-    command: -H tcp://tasks.agent:9001 --tlsskipverify --admin-password-file /tmp/portainer_password
+    command: -H tcp://tasks.agent:9001 --tlsskipverify --admin-password-file /portainer_password
     ports:
       - "9000:9000"
     volumes:
       - portainer_data:/data
-      - /tmp/data/portainer_password:/tmp/portainer_password
+      - /portainer_password:/portainer_password
     networks:
       - agent_network
     deploy:
       mode: replicated
       replicas: 1
       placement:
-        constraints: [node.role == manager]
+        constraints:
+         - node.role == manager
     # priviledged: true
 
 networks:

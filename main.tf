@@ -1,6 +1,8 @@
 provider "aws" {
   region  = var.aws_region
-  version = "~> 2.40"
+  version = "~> 2.50"
+  # access_key = var.access_key
+  # secret_key = var.secret_key
 }
 
 # ------------------------------------------------------------------------------
@@ -38,6 +40,7 @@ resource "aws_iam_role_policy_attachment" "swarm_sm" {
 }
 
 resource "aws_iam_policy" "bucket_policy" {
+  depends_on  = [aws_s3_bucket.scripts_bucket]
   name        = format("%s-%s-bucket-policy", var.environment, var.namespace)
   description = "Access to S3 scripts bucket policy"
 
@@ -49,8 +52,8 @@ resource "aws_iam_policy" "bucket_policy" {
       "Effect": "Allow",
       "Action": "s3:*",
       "Resource": [
-          "arn:aws:s3:::${var.S3_scripts_path}/*",
-          "arn:aws:s3:::${var.S3_scripts_path}"
+          "${format("%s/*", aws_s3_bucket.scripts_bucket.arn)}",
+          "${aws_s3_bucket.scripts_bucket.arn}"
       ]
     }
   ]
@@ -60,12 +63,17 @@ EOF
 
 # S3 scripts bucket access
 resource "aws_iam_role_policy_attachment" "bucket_access" {
-  count      = var.is_bucket_policy
   role       = aws_iam_role.swarm.id
   policy_arn = aws_iam_policy.bucket_policy.arn
 }
 
-# following two are not needed if not using cloudstor or similar permanent volumes plugin
+# S3 scripts bucket access
+resource "aws_iam_role_policy_attachment" "volume_access" {
+  role       = aws_iam_role.swarm.id
+  policy_arn = aws_iam_policy.volume_policy.arn
+}
+
+# *** Following is needed only if using cloudstor or similar permanent volumes plugin ***
 resource "aws_iam_policy" "volume_policy" {
   name        = format("%s-%s-volume-policy", var.environment, var.namespace)
   description = "Access to volume managment policy"
@@ -95,15 +103,7 @@ resource "aws_iam_policy" "volume_policy" {
 EOF
 }
 
-# S3 scripts bucket access
-resource "aws_iam_role_policy_attachment" "volume_access" {
-  count      = var.is_bucket_policy
-  role       = aws_iam_role.swarm.id
-  policy_arn = aws_iam_policy.volume_policy.arn
-}
-
-
-resource "aws_iam_instance_profile" "swarm" {
+resource "aws_iam_instance_profile" "swarm_ec2" {
   name = format("%s-%s-profile", var.environment, var.namespace)
   role = aws_iam_role.swarm.id
 }
@@ -215,9 +215,9 @@ resource "aws_instance" "first_swarm_master" {
   # spot_price    = var.master_spot_price
   depends_on = [
     aws_iam_role_policy_attachment.swarm_sm,
-    aws_iam_role.swarm, aws_iam_instance_profile.swarm,
+    aws_iam_role.swarm, aws_iam_instance_profile.swarm_ec2,
     aws_iam_role_policy_attachment.swarm_ssm,
-    aws_vpc_endpoint.secretsmanager
+    aws_vpc_endpoint.secretsmanager, aws_s3_bucket.scripts_bucket
   ]
 
   root_block_device {
@@ -227,7 +227,7 @@ resource "aws_instance" "first_swarm_master" {
 
   vpc_security_group_ids = [aws_security_group.swarm.id]
 
-  iam_instance_profile = aws_iam_instance_profile.swarm.name
+  iam_instance_profile = aws_iam_instance_profile.swarm_ec2.name
 
   tags = merge(map("Name", format("%s-%s-master-1", var.environment, var.namespace)), var.tags)
 
@@ -239,23 +239,23 @@ resource "aws_instance" "first_swarm_master" {
 #!/bin/bash
 # download pem and start script
 export ENVIRONMENT=${var.environment}
-echo "export ENVIRONMENT=${var.environment}" >> ~/.bashrc
-export S3_PATH=${var.S3_scripts_path}
-echo "export S3_PATH=${var.S3_scripts_path}" >> ~/.bashrc
-nohup aws s3 cp s3://${var.S3_scripts_path}/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
-nohup aws s3 cp s3://${var.S3_scripts_path}/swarm_initial_master.sh /start.sh &
+echo "export ENVIRONMENT=${var.environment}" >> /etc/profile.d/custom.sh
+export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
+echo "export S3_PATH=$S3_PATH" >> /etc/profile.d/custom.sh &
+nohup aws s3 cp s3://$S3_PATH/swarm_initial_master.sh /start.sh &
 # may be added by default in amazon image
 export AWS_DEFAULT_REGION=${var.aws_region}
-echo "export AWS_DEFAULT_REGION=${var.aws_region}" >> ~/.bashrc
+echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
 yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y
 service docker start
+
 export SWARM_MASTER_TOKEN=${format("%s-swarm-master-token2", var.environment)}
 export SWARM_WORKER_TOKEN=${format("%s-swarm-worker-token2", var.environment)}
 # export to profile for use in updating tokens with update_tokens.sh
-echo "export SWARM_MASTER_TOKEN=$SWARM_MASTER_TOKEN" >> ~/.bashrc
-echo "export SWARM_WORKER_TOKEN=$SWARM_WORKER_TOKEN" >> ~/.bashrc
+echo "export SWARM_MASTER_TOKEN=$SWARM_MASTER_TOKEN" >> /etc/profile.d/custom.sh
+echo "export SWARM_WORKER_TOKEN=$SWARM_WORKER_TOKEN" >> /etc/profile.d/custom.sh
 
 docker swarm init --advertise-addr $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 MASTER_TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_MASTER_TOKEN --query "SecretString" --output text)
@@ -267,7 +267,7 @@ else
   # exists so update token
   aws secretsmanager update-secret --secret-id $SWARM_MASTER_TOKEN --secret-string $(docker swarm join-token manager -q) 2>/dev/null
 fi
-TOKEN=$(aws} secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
+TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
 echo "TOKEN=$TOKEN"
 if [ -z "$TOKEN" ]
 then  # does not exist so create secret
@@ -278,15 +278,21 @@ else
 fi
 echo "${var.portainer_password}" > /portainer_password
 
+docker node update --label-add type=initial_master $(hostname)
 # sleep time to allow nodes to join before running any stack deploys etc.
 nodes=$((${var.master_nodes_desired} + ${var.worker_nodes_desired}))
 while [ $(docker node ls -q | wc -l) -lt "$nodes" ]; do echo 'Waiting for nodes' >> /start.log;sleep 5;done
 
-chmod 400 /${var.aws_key_name}.pem
+if [[ "${var.has_pem}" ]];then
+  nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
+  chmod 400 /${var.aws_key_name}.pem
+fi
 
-#docker login to pull private repositories if username is passed.
-if test "${var.docker_username}" && test "${var.docker_password}";then
-  docker login --username=${var.docker_username} --password=${var.docker_password}
+#docker login to pull private repositories if username and password secret identities are passed.
+DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
+DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
+if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
+  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
 fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log

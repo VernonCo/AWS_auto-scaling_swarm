@@ -21,6 +21,7 @@ resource "aws_security_group" "vpc_channel" {
 
   tags   = merge(map("Name", format("%s-%s-vpc-channel",var.environment,var.namespace)), var.tags)
 }
+
 module "vpc" {
   # "https://github.com/terraform-aws-modules/terraform-aws-vpc"
   source = "../../modules/terraform-aws-vpc"
@@ -73,6 +74,7 @@ data "aws_vpc_endpoint_service" "secretsmanager" {
 }
 
 resource "aws_vpc_endpoint" "secretsmanager" {
+  depends_on        = [module.vpc.vpc_id,module.vpc.private_subnets,module.vpc.public_subnets]
   vpc_id            = module.vpc.vpc_id
   service_name      = data.aws_vpc_endpoint_service.secretsmanager.service_name
   vpc_endpoint_type = "Interface"
