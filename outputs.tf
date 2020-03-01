@@ -8,11 +8,11 @@ output "service_url" {
   value = format("http://%s",aws_eip.swarm-master.public_ip)
 }
 
-output "swarmpi_url" {
+output "swarmpit_url" {
   value = format("http://%s:8080",aws_eip.swarm-master.public_ip)
 }
 
-output "swarmpi_url" {
+output "portainer_url" {
   value = format("http://%s:9000",aws_eip.swarm-master.public_ip)
 }
 
