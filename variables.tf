@@ -17,17 +17,18 @@ variable "aws_key_name" {
 }
 # *** place the pem in the same folder as this file ***********************
 #  in order to be copied to the S3 private scripts bucket
+# allows ssh between instances if desired
 variable has_pem {
   description = "1 if passing a pem for containers to ssh back and forth"
   type        = string
-  default     = null
+  default     = ""
 }
 variable "allowed_ip" {
-  description = "Ip to allow ssh access"
+  description = "Ip to allow ssh access ie. 173.2.2.2/32"
   type        = string
 }
 variable "ssl_arn" {
-  description = "default certificate manager ssl certs"
+  description = "default certificate manager ssl cert"
   type        = string
 }
 variable bucket_name {
@@ -59,41 +60,48 @@ variable "portainer_password" {
 variable "peering_enabled" {
   description = "true || false  to create peer connection to another vpc in the same region.  default=default vpc"
   type        = bool
+  default     = false
 }
 variable "peer_vpc_id" {
   description = "peer connection's vpc id.  May not be used if grabbing default vpc info"
   type        = string
+  default     = ""
 }
 variable "peer_cidr" {
   description = "peer connection's cidr.  May not be used if grabbing default vpc info"
   type        = string
+  default     = ""
 }
 variable "peer_route_table_id" {
   description = "peer connection's route table to add route to.  May not be used if grabbing default vpc info"
   type        = string
+  default     = ""
 }
 
 # Add AWS Secrets for docker login to pull private repositories
 variable "docker_username" {
   description = "docker username used to pull private repositories"
   type        = string
-  default     = null
+  default     = ""
 }
 variable "docker_password" {
   description = "docker password used to pull private repositories"
   type        = string
-  default     = null
+  default     = ""
 }
 
-# can be used in regions that have sns
-variable "subscriptions" {
-  description = "phone number list for sms subscription to autscaling notices"
-  type        = set(string)
-}
-variable "sms_id" {
-  description = "String to identify sms notice. (ie. Vernon AWS)"
-  type        = string
-}
+# following 2 can be used in regions that have sns as part of notifications.tf
+
+# variable "subscriptions" {
+#   description = "phone number list for sms subscription to autscaling notices"
+#   type        = set(string)
+#   default     = null
+# }
+# variable "sms_id" {
+#   description = "String to identify sms notice. (ie. Vernon AWS)"
+#   type        = string
+#   default     = null
+# }
 # -----------------------------------------------------------------------------
 # variables with defaults.  Override in terraform.tfvars or here if desired.
 # -----------------------------------------------------------------------------

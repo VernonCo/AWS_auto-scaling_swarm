@@ -77,7 +77,7 @@ resource "aws_s3_bucket" "alb_logs" {
 #=============================================================
 # listener to redirect all 80 to 443
 resource "aws_lb_listener" "http" {
-  depends_on = [aws_alb.project]
+  depends_on        = [aws_alb.project]
   load_balancer_arn = aws_alb.project.arn
   port              = "80"
   protocol          = "HTTP"

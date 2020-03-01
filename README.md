@@ -43,29 +43,20 @@ aws-auto-scaling-swarm can create the resources needed to run a swarm on AWS inc
   - Security groups
   - route tables
   - private and public subnets in each zone
+  - S3 bucket for scripts
   - alb
   - target groups
   - initial master using on-demand instance
   - auto scaling groups (masters, workers)
   - auto scaling configs (masters, workers) using spot instances
   - auto scaling policies based on cpu ( you can add based on free memory)
+  - peering connection (optional)
 ### Initial Swarm Master
 An initial on-demand (if reserved is desired, change in main.tf) swarm master is created to begin the process. It sets up swarm tokens and runs stacks.  It also has an public IP to access it from the allowed IP.
 #### Cron Jobs, Scripts & Stacks
 This swarm master can download scripts & stacks and a crontab.txt to run cronjobs from a S3 bucket (see the user_data in main.tf for the initial master and swarm_initial_master.sh) There is a sleep time while the intial swarm master waits for the other nodes to come up before creating the stacks.
 
-Structure for the S3 bucket:
->/_namespace_/_environment_       [_environment_-crontab.txt, update_tokens.sh, add_zone_label.sh(for swarmpit)]
-
->___/dev  [bash scripts (see ./example_scripts)]
-
->_____/stacks  [yml files  (see ./example_scripts/stacks/)]
-
->___/prod
-
->___.....
-
-Example scripts install swarmpit and portainer, two Swarm UI management apps.
+s3_bucket.tf will create a bucket and upload scripts from root folder and ./example_scripts  Example scripts install swarmpit and portainer, two Swarm UI management apps.
 
 If S3 scripts are not used, you can still ssh into the initial master to copy/create scripts and stacks to run.
 #### AWS Secret Manager for Swarm Token
