@@ -251,6 +251,18 @@ yum install -y jq
 amazon-linux-extras install docker -y
 service docker start
 
+if [[ "${var.has_pem}" ]];then
+  nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
+  chmod 400 /${var.aws_key_name}.pem
+fi
+
+#docker login to pull private repositories if username and password secret identities are passed.
+DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
+DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
+if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
+  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
+fi
+
 export SWARM_MASTER_TOKEN=${format("%s-swarm-master-token2", var.environment)}
 export SWARM_WORKER_TOKEN=${format("%s-swarm-worker-token2", var.environment)}
 # export to profile for use in updating tokens with update_tokens.sh
@@ -283,17 +295,6 @@ docker node update --label-add type=initial_master $(hostname)
 nodes=$((${var.master_nodes_desired} + ${var.worker_nodes_desired}))
 while [ $(docker node ls -q | wc -l) -lt "$nodes" ]; do echo 'Waiting for nodes' >> /start.log;sleep 5;done
 
-if [[ "${var.has_pem}" ]];then
-  nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
-  chmod 400 /${var.aws_key_name}.pem
-fi
-
-#docker login to pull private repositories if username and password secret identities are passed.
-DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
-DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
-if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
-  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
-fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF

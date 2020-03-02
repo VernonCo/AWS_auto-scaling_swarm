@@ -44,6 +44,17 @@ yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y
 service docker start
+if [[ "${var.has_pem}" ]];then
+  nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
+  chmod 400 /${var.aws_key_name}.pem
+fi
+
+#docker login to pull private repositories if username and password secret identities are passed.
+DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
+DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
+if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
+  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
+fi
 export SWARM_MASTER_TOKEN=${format("%s-swarm-master-token2", var.environment)}
 # export to profile for use in updating tokens with update_tokens.sh
 echo "export SWARM_MASTER_TOKEN=$SWARM_MASTER_TOKEN" >> /etc/profile.d/custom.sh
@@ -56,17 +67,10 @@ TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_MASTER_TOKEN --qu
 # echo "TOKEN=$TOKEN"
 
 docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2377
+
 # get the zone that the instances are running in and add to docker node's label
 # this allows you to deploy containers equally in multiple zones using
 # the deploy>preferences -spread:  node.labels.zone
-chmod 400 /${var.aws_key_name}.pem
-
-#docker login to pull private repositories if username is passed.
-DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
-DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
-if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
-  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
-fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF
@@ -117,7 +121,17 @@ yum update -y -q
 yum install -y jq
 amazon-linux-extras install docker -y
 service docker start
+if [[ "${var.has_pem}" ]];then
+  nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
+  chmod 400 /${var.aws_key_name}.pem
+fi
 
+#docker login to pull private repositories if username and password secret identities are passed.
+DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
+DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
+if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
+  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
+fi
 # make sure the first master is set up and has saved the join token to secrets
 sleep ${var.sleep_seconds}
 
@@ -126,17 +140,10 @@ TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --qu
 # echo "TOKEN=$TOKEN"
 
 docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2377
+
 # get the zone that the instances are running in and add to docker node's label
 # this allows you to deploy containers equally in multiple zones using
 # the deploy>preferences -spread:  node.labels.zone
-chmod 400 /${var.aws_key_name}.pem
-
-#docker login to pull private repositories if username is passed.
-DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
-DOCKER_PASSWORD=$(aws secretsmanager get-secret-value --secret-id ${var.docker_password} --query "SecretString" --output text)
-if test "$DOCKER_USER" && test "$DOCKER_PASSWORD";then
-  docker login --username=$DOCKER_USER --password=$DOCKER_PASSWORD
-fi
 chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF
