@@ -31,23 +31,22 @@ resource "aws_launch_configuration" "swarm_master_node" {
 
   user_data = <<EOF
 #!/bin/bash
+# AWS_DEFAULT_REGION may be added by default in amazon image
+export AWS_DEFAULT_REGION=${var.aws_region}
+echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=${var.environment}" >> /etc/profile.d/custom.sh
 export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
 echo "export S3_PATH=S3_PATH" >> /etc/profile.d/custom.sh
-nohup aws s3 cp s3://S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
-nohup aws s3 cp s3://S3_PATH/swarm_masters.sh /start.sh &
-# may be added by default in amazon image
-export AWS_DEFAULT_REGION=${var.aws_region}
-echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
-yum update -y -q
-yum install -y jq
-amazon-linux-extras install docker -y
-service docker start
+nohup aws s3 cp s3://$S3_PATH/swarm_masters.sh /start.sh &
 if [[ "${var.has_pem}" ]];then
   nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
   chmod 400 /${var.aws_key_name}.pem
 fi
+yum update -y -q
+yum install -y jq
+amazon-linux-extras install docker -y
+service docker start
 
 #docker login to pull private repositories if username and password secret identities are passed.
 DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
@@ -66,7 +65,7 @@ sleep ${var.sleep_seconds}
 TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_MASTER_TOKEN --query "SecretString" --output text)
 # echo "TOKEN=$TOKEN"
 
-docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2377
+docker swarm join --token $TOKEN
 
 # get the zone that the instances are running in and add to docker node's label
 # this allows you to deploy containers equally in multiple zones using
@@ -107,24 +106,23 @@ resource "aws_launch_configuration" "swarm_worker_node" {
 
   user_data = <<EOF
 #!/bin/bash
-#download pem and start script
+# AWS_DEFAULT_REGION may be added by default in amazon image
+export AWS_DEFAULT_REGION=${var.aws_region}
+echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=$ENVIRONMENT" >> /etc/profile.d/custom.sh
 export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
 echo "export S3_PATH=S3_PATH" >> /etc/profile.d/custom.sh
-nohup aws s3 cp s3://S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem &
-nohup aws s3 cp s3://S3_PATH/swarm_workers.sh /start.sh &
-# may be added by default in amazon image
-export AWS_DEFAULT_REGION=${var.aws_region}
-echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
-yum update -y -q
-yum install -y jq
-amazon-linux-extras install docker -y
-service docker start
+#download pem and start script
+nohup aws s3 cp s3://$S3_PATH/swarm_workers.sh /start.sh &
 if [[ "${var.has_pem}" ]];then
   nohup aws s3 cp s3://$S3_PATH/${var.aws_key_name}.pem /${var.aws_key_name}.pem
   chmod 400 /${var.aws_key_name}.pem
 fi
+yum update -y -q
+yum install -y jq
+amazon-linux-extras install docker -y
+service docker start
 
 #docker login to pull private repositories if username and password secret identities are passed.
 DOCKER_USER=$(aws secretsmanager get-secret-value --secret-id ${var.docker_username} --query "SecretString" --output text)
@@ -139,7 +137,7 @@ export SWARM_WORKER_TOKEN=${format("%s-swarm-worker-token2", var.environment)}
 TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
 # echo "TOKEN=$TOKEN"
 
-docker swarm join --token $TOKEN ${aws_instance.first_swarm_master.private_ip}:2377
+docker swarm join --token $TOKEN
 
 # get the zone that the instances are running in and add to docker node's label
 # this allows you to deploy containers equally in multiple zones using

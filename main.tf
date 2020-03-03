@@ -271,22 +271,22 @@ echo "export SWARM_WORKER_TOKEN=$SWARM_WORKER_TOKEN" >> /etc/profile.d/custom.sh
 
 docker swarm init --advertise-addr $(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
 MASTER_TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_MASTER_TOKEN --query "SecretString" --output text)
-echo "TOKEN=$MASTER_TOKEN"
+TOKEN="$(docker swarm join-token manager -q) $(hostname):2377"
 if [ -z "$MASTER_TOKEN" ]
 then  # does not exist so create secret
-  aws secretsmanager create-secret --name $SWARM_MASTER_TOKEN --description "swarm token for masters" --secret-string $(docker swarm join-token manager -q) 2>/dev/null
+  aws secretsmanager create-secret --name $SWARM_MASTER_TOKEN --description "swarm token for masters" --secret-string "$TOKEN"
 else
   # exists so update token
-  aws secretsmanager update-secret --secret-id $SWARM_MASTER_TOKEN --secret-string $(docker swarm join-token manager -q) 2>/dev/null
+  aws secretsmanager update-secret --secret-id $SWARM_MASTER_TOKEN --secret-string "$TOKEN"
 fi
-TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
-echo "TOKEN=$TOKEN"
-if [ -z "$TOKEN" ]
+WORKER_TOKEN=$(aws secretsmanager get-secret-value --secret-id $SWARM_WORKER_TOKEN --query "SecretString" --output text)
+JOIN_TOKEN="$(docker swarm join-token worker -q) $(hostname):2377"
+if [ -z "$WORKER_TOKEN" ]
 then  # does not exist so create secret
-  aws secretsmanager create-secret --name $SWARM_WORKER_TOKEN --description "swarm token for workers" --secret-string $(docker swarm join-token worker -q) 2>/dev/null
+  aws secretsmanager create-secret --name $SWARM_WORKER_TOKEN --description "swarm token for workers" --secret-string "$JOIN_TOKEN"
 else
   # exists so update token
-  aws secretsmanager update-secret --secret-id $SWARM_WORKER_TOKEN --secret-string $(docker swarm join-token worker -q) 2>/dev/null
+  aws secretsmanager update-secret --secret-id $SWARM_WORKER_TOKEN --secret-string "$JOIN_TOKEN"
 fi
 echo "${var.portainer_password}" > /portainer_password
 
