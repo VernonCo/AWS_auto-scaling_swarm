@@ -199,7 +199,7 @@ variable "first_master_instance_size" {
 variable "first_master_volume_size" {
   description = "volume size on initial master"
   type        = string
-  default     = "75"
+  default     = "30"
 }
 
 variable "master_node_spot_price" {

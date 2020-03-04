@@ -5,6 +5,7 @@ resource "aws_s3_bucket" "scripts_bucket" {
   versioning {
     enabled = true
   }
+  # no encryption to be able to use etag
 }
 
 #  scripts to run on instance start up
