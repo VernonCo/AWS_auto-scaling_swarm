@@ -174,7 +174,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 #   egress         = false
 #   protocol       = "tcp"
 #   rule_action    = "allow"
-#   cidr_block     = var.allowed_ip
+#   cidr_block     = local.allowed_ip
 #   from_port      = 8080
 #   to_port        = 8080
 # }
@@ -284,7 +284,7 @@ resource "aws_vpc_endpoint" "secretsmanager" {
 #   egress         = false
 #   protocol       = "tcp"
 #   rule_action    = "allow"
-#   cidr_block     = var.allowed_ip
+#   cidr_block     = local.allowed_ip
 #   from_port      = 22
 #   to_port        = 22
 # }
