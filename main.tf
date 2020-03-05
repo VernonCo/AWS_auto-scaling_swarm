@@ -124,7 +124,7 @@ resource "aws_security_group" "swarm" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [var.allowed_ip]
+    cidr_blocks = [local.allowed_ip]
   }
 
   ingress {
@@ -174,7 +174,7 @@ resource "aws_security_group" "swarm" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [var.allowed_ip]
+    cidr_blocks = [local.allowed_ip]
   }
 
   egress {
