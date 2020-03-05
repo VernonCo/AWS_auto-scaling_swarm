@@ -20,8 +20,8 @@ variable "aws_key_name" {
 # allows ssh between instances if desired
 variable has_pem {
   description = "1 if passing a pem for containers to ssh back and forth"
-  type        = string
-  default     = ""
+  type        = bool
+  default     = false
 }
 variable "allowed_ip" {
   description = "Ip to allow ssh access ie. 173.2.2.2/32"
@@ -199,7 +199,7 @@ variable "first_master_instance_size" {
 variable "first_master_volume_size" {
   description = "volume size on initial master"
   type        = string
-  default     = "75"
+  default     = "30"
 }
 
 variable "master_node_spot_price" {

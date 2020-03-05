@@ -67,13 +67,12 @@ resource "aws_iam_role_policy_attachment" "bucket_access" {
   policy_arn = aws_iam_policy.bucket_policy.arn
 }
 
-# S3 scripts bucket access
+# *** Following two needed only if using cloudstor or similar permanent volumes plugin ***
 resource "aws_iam_role_policy_attachment" "volume_access" {
   role       = aws_iam_role.swarm.id
   policy_arn = aws_iam_policy.volume_policy.arn
 }
 
-# *** Following is needed only if using cloudstor or similar permanent volumes plugin ***
 resource "aws_iam_policy" "volume_policy" {
   name        = format("%s-%s-volume-policy", var.environment, var.namespace)
   description = "Access to volume managment policy"
@@ -125,7 +124,7 @@ resource "aws_security_group" "swarm" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [var.allowed_ip]
+    cidr_blocks = [local.allowed_ip]
   }
 
   ingress {
@@ -175,7 +174,7 @@ resource "aws_security_group" "swarm" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [var.allowed_ip]
+    cidr_blocks = [local.allowed_ip]
   }
 
   egress {
