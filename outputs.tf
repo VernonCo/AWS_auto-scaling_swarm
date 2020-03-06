@@ -1,25 +1,44 @@
 
-
-output "swarm_master" {
-  value = aws_eip.swarm-master.public_ip
+output "allow_local_ip" {
+  value = var.allow_local_ip
+}
+output "allowed_ip" {
+  value = local.allowed_ip
 }
 
-output "service_url" {
-  value = format("http://%s",aws_eip.swarm-master.public_ip)
+output "has_associated_ip"{
+  value = var.has_eip_id
+}
+output "if_associated_ip" {
+  value = "change commented lines on output.tf or use the associated eip in the urls given"
 }
 
-output "swarmpit_url" {
-  value = format("http://%s:8080",aws_eip.swarm-master.public_ip)
+output "swarm_master_ssh" {
+  value = format("ssh -i %s.pem ec2-user@%s", var.aws_key_name, aws_instance.first_swarm_master.public_ip)
 }
 
-output "portainer_url" {
-  value = format("http://%s:9000",aws_eip.swarm-master.public_ip)
+output "swarmpit_url_without_assoc_eip" {
+  value = format("http://%s:8080", aws_instance.first_swarm_master.public_ip)
 }
 
-output "rte_53_lb_alias" {
-  value = aws_alb.project.zone_id
+output "portainer_url_without_assoc_eip" {
+  value = format("http://%s:9000", aws_instance.first_swarm_master.public_ip)
 }
+
+
+# output "swarm_master_ssh_with_assoc_eip" {
+#   value = format("ssh -i %s.pem ec2-user@%s", var.aws_key_name, aws_eip_association.swarm-master[0].public_ip)
+# }
+
+# output "swarmpit_url_with_assoc_eip" {
+#   value = format("http://%s:8080",aws_eip_association.swarm-master[0].public_ip)
+# }
+
+# output "portainer_url_with_assoc_eip" {
+#   value = format("http://%s:9000",aws_eip_association.swarm-master[0].public_ip)
+# }
+
 
 output "alb_dns" {
-  value = aws_alb.project.name
+  value = aws_alb.project.dns_name
 }

@@ -8,7 +8,7 @@ unlink /etc/localtime
 ln -s /usr/share/zoneinfo/America/Chicago /etc/localtime
 
 # echo "run scripts"
-sudo bash ./add_zone_label.sh
+bash ./add_zone_label.sh
 
 # cloudstor plugin allows persistent volumes on AWS and Azure
 # see swarm_initial_master.sh for limitations and alternatives

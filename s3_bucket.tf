@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "scripts_bucket" {
-  bucket = format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)
+  bucket = format("%s-%s%s-%s-scripts", var.domain, var.aws_region, var.namespace, var.environment)
   acl    = "private"
 
   versioning {

@@ -62,7 +62,7 @@ resource "aws_lb_target_group" "project" {
 
 # s3 bucket for alb logs
 resource "aws_s3_bucket" "alb_logs" {
-  bucket = format("%s-%s-alb-logs", var.environment, var.namespace)
+  bucket = format("%s-%s-%s-%s-alb-logs", var.domain, var.aws_region, var.environment, var.namespace)
   acl    = "log-delivery-write"
   lifecycle_rule {
     id      = "log"

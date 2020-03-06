@@ -124,13 +124,6 @@ resource "aws_security_group" "swarm" {
     from_port   = 0
     to_port     = 0
     protocol    = -1
-    cidr_blocks = [local.allowed_ip]
-  }
-
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
     cidr_blocks = module.vpc.private_subnets_cidr_blocks
   }
 
@@ -170,12 +163,12 @@ resource "aws_security_group" "swarm" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = -1
-    cidr_blocks = [local.allowed_ip]
-  }
+  # egress {
+  #   from_port   = 0
+  #   to_port     = 0
+  #   protocol    = -1
+  #   cidr_blocks = [local.allowed_ip]
+  # }
 
   egress {
     from_port   = 0
@@ -199,6 +192,30 @@ resource "aws_security_group" "swarm" {
   }
 }
 
+# adds access from allowed ip if given
+resource "aws_security_group_rule" "local_ip_ingress" {
+  count = var.allow_local_ip? 1: 0
+  type            = "ingress"
+  from_port       = 0
+  to_port         = 65535
+  protocol        = "tcp"
+  # Opening to 0.0.0.0/0 can lead to security vulnerabilities.
+  cidr_blocks = local.allowed_ip
+
+  security_group_id = aws_security_group.swarm.id
+}
+
+resource "aws_security_group_rule" "local_ip_egress" {
+  count = var.allow_local_ip? 1: 0
+  type            = "egress"
+  from_port       = 0
+  to_port         = 65535
+  protocol        = "tcp"
+  # Opening to 0.0.0.0/0 can lead to security vulnerabilities.
+  cidr_blocks = local.allowed_ip
+
+  security_group_id = aws_security_group.swarm.id
+}
 # create on-demand instance with elastic-IP attached to initialize the swarm
 # modifying this after apply will recreate initial master and replace launch configurations.
 # the new initial_master will be orphaned from the original extra nodes. You will need to ssh to
@@ -239,7 +256,7 @@ resource "aws_instance" "first_swarm_master" {
 # download pem and start script
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=${var.environment}" >> /etc/profile.d/custom.sh
-export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
+export S3_PATH=${format("%s-%s%s-%s-scripts", var.domain, var.aws_region, var.namespace, var.environment)}
 echo "export S3_PATH=$S3_PATH" >> /etc/profile.d/custom.sh &
 nohup aws s3 cp s3://$S3_PATH/swarm_initial_master.sh /start.sh &
 # may be added by default in amazon image
@@ -298,11 +315,12 @@ chmod +x start.sh
 . start.sh 2>&1 >> /start.log
 EOF
 }
-# elastic Ip for primary master
+# associate elastic Ip for primary master
 
-resource "aws_eip" "swarm-master" {
-  vpc      = true
-  instance = aws_instance.first_swarm_master.id
+resource "aws_eip_association" "swarm-master" {
+  count         = var.has_eip_id ? 1 : 0 # do if exists
+  instance_id   = aws_instance.first_swarm_master.id
+  allocation_id = var.eip_id
 }
 
 

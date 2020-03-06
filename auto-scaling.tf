@@ -36,7 +36,7 @@ export AWS_DEFAULT_REGION=${var.aws_region}
 echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=${var.environment}" >> /etc/profile.d/custom.sh
-export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
+export S3_PATH=${format("%s-%s-%s-scripts", var.domain, var.namespace, var.environment)}
 echo "export S3_PATH=S3_PATH" >> /etc/profile.d/custom.sh
 nohup aws s3 cp s3://$S3_PATH/swarm_masters.sh /start.sh &
 if [[ "${var.has_pem}" ]];then
@@ -111,7 +111,7 @@ export AWS_DEFAULT_REGION=${var.aws_region}
 echo "export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION" >> /etc/profile.d/custom.sh
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=$ENVIRONMENT" >> /etc/profile.d/custom.sh
-export S3_PATH=${format("%s-%s-%s", var.bucket_name, var.namespace, var.environment)}
+export S3_PATH=${format("%s-%s-%s-scripts", var.domain, var.namespace, var.environment)}
 echo "export S3_PATH=S3_PATH" >> /etc/profile.d/custom.sh
 #download pem and start script
 nohup aws s3 cp s3://$S3_PATH/swarm_workers.sh /start.sh &
