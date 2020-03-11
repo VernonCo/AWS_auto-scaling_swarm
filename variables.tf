@@ -71,7 +71,7 @@ variable "public_subnets" {
 # -----------------------------------------------------------------------------
 
 # *** place the pem in the same folder as this file ***********************
-#  in order to be copied to the S3 private scripts bucket
+#  add to script_uploads below in order to be copied to the S3 private scripts bucket
 # allows ssh between instances if desired
 variable has_pem {
   description = "1 if passing a pem for containers to ssh back and forth"

@@ -126,8 +126,9 @@ resource "aws_lb_listener_rule" "www-default" {
   }
 
   condition {
-    field  = "host-header"
-    values = [format("%s", var.domain)]
+    host_header {
+      values = [format("%s", var.domain)]
+    }
   }
 }
 
@@ -143,8 +144,9 @@ resource "aws_lb_listener_rule" "project" {
   }
 
   condition {
-    field  = "host-header"
-    values = lookup(var.target_groups[count.index], "domains")
+    host_header {
+      values = lookup(var.target_groups[count.index], "domains")
+    }
   }
 }
 
@@ -163,8 +165,10 @@ resource "aws_lb_listener_rule" "default" {
       query       = "#{query}"
     }
   }
+
   condition {
-    field  = "host-header"
-    values = [var.domain]
+    host_header {
+      values = [var.domain]
+    }
   }
 }
