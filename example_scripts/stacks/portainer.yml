@@ -14,6 +14,13 @@ services:
     networks:
       - agent_network
     deploy:
+      resources:
+        limits:
+          cpus: "0.20"
+          memory: 256M
+        reservations:
+          cpus: "0.08"
+          memory: 128M
       mode: global
       placement:
         constraints: [node.platform.os == linux]
@@ -24,25 +31,47 @@ services:
     # create password: docker run --rm httpd:2.4-alpine htpasswd -nbB admin 'your_password' | cut -d ":" -f 2
     #  Add a $ infront of any $ in the output from above
     command: -H tcp://tasks.agent:9001 --tlsskipverify --admin-password-file /portainer_password
-    ports:
-      - "9000:9000"
+    # ports:
+    #   - "9000:9000"
     volumes:
       - portainer_data:/data
       - /portainer_password:/portainer_password
     networks:
       - agent_network
+      - app-net
+      - traefik
     deploy:
-      mode: replicated
+      resources:
+        limits:
+          cpus: "0.15"
+          memory: 256M
+        reservations:
+          cpus: "0.08"
+          memory: 128M
       replicas: 1
       placement:
         constraints:
-         - node.role == manager
-    # priviledged: true
+         - node.labels.type == initial_master
+      labels:
+        - traefik.frontend.rule=Host:${ENVIRONMENT}-portainer.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=9000
+        - traefik.docker.network=traefik
+        - traefik.http.frontend.entryPoints=http
+    ports:
+      - target: 9000
+        published: 9000
+        mode: host
 
 networks:
   agent_network:
     driver: overlay
     attachable: true
+  app-net:
+    external: true
+  traefik:
+    external: true
+
 
 volumes:
   portainer_data:

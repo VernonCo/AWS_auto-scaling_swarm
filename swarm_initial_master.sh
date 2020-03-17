@@ -13,6 +13,7 @@ ln -s /usr/share/zoneinfo/America/Chicago /etc/localtime
 
 # echo "Create attachable internal network for the swarm"
 docker network create --driver=overlay --attachable app-net
+docker network create --driver=overlay --attachable traefik
 
 # cloudstor plugin allows persistent volumes on AWS and Azure but not on the new nvme backed instances
 # https://docs.docker.com/docker-for-aws/persistent-data-volumes/

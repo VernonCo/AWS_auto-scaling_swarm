@@ -1,4 +1,7 @@
 # retieve you ip for allowing access to the intial master
+provider http {
+  version = "~> 1.1"
+}
 data "http" "myip" {
   url = "https://ipv4.icanhazip.com"
 }

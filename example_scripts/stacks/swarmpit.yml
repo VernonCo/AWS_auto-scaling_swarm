@@ -10,11 +10,15 @@ services:
       - BASIC_AUTH_PASSWORD=myadminpassword
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    ports:
-      - 8080:8080
     networks:
       - swarmpit-net
+      - app-net
+      - traefik
     deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.type == initial_master
       resources:
         limits:
           cpus: "0.50"
@@ -22,9 +26,17 @@ services:
         reservations:
           cpus: "0.25"
           memory: 512M
-      placement:
-        constraints:
-          - node.role == manager
+      labels:
+        - traefik.frontend.rule=Host:${ENVIRONMENT}-swarmpit.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=8080
+        - traefik.docker.network=traefik
+        - traefik.http.frontend.entryPoints=http
+    ports:
+      - target: 8080
+        published: 8080
+        mode: host
+
 
   db:
     image: couchdb:2.3.0
@@ -35,14 +47,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.30"
+          cpus: "0.10"
           memory: 256M
         reservations:
-          cpus: "0.15"
+          cpus: "0.8"
           memory: 128M
       placement:
         constraints:
-          - node.role == manager
+          - node.labels.type == initial_master
 
   influxdb:
     image: influxdb:1.7
@@ -53,14 +65,14 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.30"
+          cpus: "0.10"
           memory: 256M
         reservations:
-          cpus: "0.15"
+          cpus: "0.08"
           memory: 128M
       placement:
         constraints:
-          - node.role == manager
+          - node.labels.type == initial_master
 
   agent:
     image: swarmpit/agent:latest
@@ -86,9 +98,11 @@ networks:
   swarmpit-net:
     driver: overlay
     attachable: true
+  app-net:
+    external: true
+  traefik:
+    external: true
 
 volumes:
   db-data:
-    driver: local
   influx-data:
-    driver: local

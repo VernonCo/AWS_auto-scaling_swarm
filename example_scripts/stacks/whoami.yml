@@ -1,0 +1,32 @@
+version: "3.7"
+services:
+  whoami:
+    image: emilevauge/whoami
+    networks:
+      - app-net
+      - traefik
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+      mode: global
+      labels:
+        - traefik.frontend.rule=Host:${ENVIRONMENT}-whoami.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=8081
+        - traefik.docker.network=traefik
+        - traefik.http.frontend.entryPoints=http
+        - traefik.backend.loadbalancer.stickiness=true
+    ports:
+      - target: 80
+        published: 8081
+
+networks:
+  traefik:
+    external: true
+  app-net:
+    external: true

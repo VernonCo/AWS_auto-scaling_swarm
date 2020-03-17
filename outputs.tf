@@ -17,6 +17,10 @@ output "swarm_master_ssh" {
   value = format("ssh -i %s.pem ec2-user@%s", var.aws_key_name, aws_instance.first_swarm_master.public_ip)
 }
 
+output "traefik_url_without_assoc_eip" {
+  value = format("http://%s:8000", aws_instance.first_swarm_master.public_ip)
+}
+
 output "swarmpit_url_without_assoc_eip" {
   value = format("http://%s:8080", aws_instance.first_swarm_master.public_ip)
 }
@@ -28,6 +32,10 @@ output "portainer_url_without_assoc_eip" {
 
 # output "swarm_master_ssh_with_assoc_eip" {
 #   value = format("ssh -i %s.pem ec2-user@%s", var.aws_key_name, aws_eip_association.swarm-master[0].public_ip)
+# }
+
+# output "traefik_url_with_assoc_eip" {
+#   value = format("http://%s:8000", aws_eip_association.swarm-master[0].public_ip)
 # }
 
 # output "swarmpit_url_with_assoc_eip" {

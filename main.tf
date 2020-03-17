@@ -1,6 +1,6 @@
 provider "aws" {
   region  = var.aws_region
-  version = "~> 2.50"
+  version = "~> 2.52"
   # access_key = var.access_key
   # secret_key = var.secret_key
 }
@@ -256,6 +256,8 @@ resource "aws_instance" "first_swarm_master" {
 # download pem and start script
 export ENVIRONMENT=${var.environment}
 echo "export ENVIRONMENT=${var.environment}" >> /etc/profile.d/custom.sh
+export DOMAIN=${var.domain}
+echo "export DOMAIN=${var.domain}" >> /etc/profile.d/custom.sh
 export S3_PATH=${format("%s-%s%s-%s-scripts", var.domain, var.aws_region, var.namespace, var.environment)}
 echo "export S3_PATH=$S3_PATH" >> /etc/profile.d/custom.sh &
 nohup aws s3 cp s3://$S3_PATH/swarm_initial_master.sh /start.sh &

@@ -43,9 +43,11 @@ variable "target_groups" {
   priority = number }))
   default = [
     { name = "swarmpit", domains = ["dev-swarmpit.yourdomain"],
-    port = 8080, protocol = "HTTP", path = "/", matcher = "200-299", priority = 10 },
+    port = 8000, protocol = "HTTP", path = "/", matcher = "409", priority = 10 },
     { name = "portainer", domains = ["dev-portainer.yourdomain"],
-    port = 9000, protocol = "HTTP", path = "/", matcher = "200-299", priority = 20 }
+    port = 8000, protocol = "HTTP", path = "/", matcher = "409", priority = 20 },
+    { name = "whoami", domains = ["dev-whoami.yourdomain"],
+    port = 8000, protocol = "HTTP", path = "/", matcher = "409", priority = 30 }
   ]
 }
 #network settings check to make sure there are no colisions with existing
@@ -153,13 +155,13 @@ variable script_uploads {
 variable swarm_script_uploads {
   description = "list of swarm deploy script files to upload. They run on instances at start up. see example_scripts"
   type        = list(string)
-  default     = ["portainer.sh", "swarmpit.sh"]
+  default     = ["portainer.sh", "swarmpit.sh", "traefik.sh", "whoami.sh"]
 }
 
 variable swarm_stack_uploads {
   description = "list of docker-compose files for stacks. see example_scripts/stacks"
   type        = list(string)
-  default     = ["portainer.yml", "swarmpit.yml"]
+  default     = ["portainer.yml", "swarmpit.yml", "traefik.yml", "whoami.yml"]
 }
 
 # add a peering connection  ie to the default vpc

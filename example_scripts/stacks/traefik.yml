@@ -1,0 +1,117 @@
+version: "3.7"
+services:
+  consul-leader:
+    image: consul
+    command: agent -server -client=0.0.0.0 -bootstrap -ui
+    volumes:
+      - consul-data-leader:/consul/data
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}'
+    networks:
+      - default
+      - traefik
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: 256M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
+      replicas: 1
+      placement:
+        constraints:
+         - node.labels.type == initial_master
+      labels:
+        - traefik.frontend.rule=Host:${ENVIRONMENT}-consul.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=8500
+        - traefik.docker.network=traefik
+         # Traefik service that listens to HTTP
+        - traefik.http.frontend.entryPoints=http
+
+  consul-replica:
+    image: consul
+    command: agent -server -client=0.0.0.0 -retry-join="consul-leader"
+    volumes:
+      - consul-data-replica:/consul/data
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+      - 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}'
+    networks:
+      - default
+      - traefik
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: 256M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
+      replicas: 3
+      placement:
+        preferences:
+          - spread: node.id
+
+  traefik:
+    image: traefik:v1.7
+    deploy:
+      resources:
+        limits:
+          cpus: "0.30"
+          memory: 256M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
+      replicas: 3
+      placement:
+        constraints:
+          - node.role == manager
+        preferences:
+          - spread: node.id
+      labels:
+        - traefik.frontend.rule=Host:${ENVIRONMENT}-traefik.${DOMAIN}
+        - traefik.enable=true
+        - traefik.port=80
+        - traefik.tags=traefik
+        - traefik.docker.network=traefik
+        - traefik.http.frontend.entryPoints=http
+    ports:
+      - target: 80
+        published: 8000
+        mode: host
+      - target: 8080
+        published: 9090
+        mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: >
+      --docker
+      --docker.swarmmode
+      --docker.watch
+      --docker.exposedbydefault=false
+      --entrypoints='Name:http Address::80'
+      --consul
+      --consul.endpoint="consul-leader:8500"
+      --logLevel=WARN
+      --accessLog
+      --api
+      --ping
+    networks:
+      - default
+      - traefik
+      - app-net
+    depends_on:
+      - consul-leader
+
+volumes:
+  consul-data-leader:
+  consul-data-replica:
+
+networks:
+  app-net:
+    external: true
+  traefik:
+    external: true
